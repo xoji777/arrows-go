@@ -50,7 +50,7 @@
                     <button type="button" id="profile-sign-out-btn" class="profile-dropdown-item profile-dropdown-signout" data-i18n="btn_sign_out">Sign out</button>
                 </div>
             </div>
-            <div class="streak" id="streak-btn" style="cursor: pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#f97316" stroke="none" style="vertical-align: text-bottom; margin-right: 2px;"><path d="M12 2c0 0-4.5 3.5-4.5 8.5a4.5 4.5 0 0 0 1.3 3.1C8 14 8 15 8 15s1.5-1 2.5-1c1-1.5 2-3.5 2-3.5s.5 2 1.5 2.5c1 .5 2 1.5 2 3a4 4 0 0 1-1 2.6c2.5-1.5 3-4.5 3-6 0-5-6-10-6-10z"/></svg> <span id="streak-count">0</span></div>
+            <button class="streak" id="streak-btn" style="cursor: pointer; border: none; font-family: inherit;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#f97316" stroke="none" style="vertical-align: text-bottom; margin-right: 2px;"><path d="M12 2c0 0-4.5 3.5-4.5 8.5a4.5 4.5 0 0 0 1.3 3.1C8 14 8 15 8 15s1.5-1 2.5-1c1-1.5 2-3.5 2-3.5s.5 2 1.5 2.5c1 .5 2 1.5 2 3a4 4 0 0 1-1 2.6c2.5-1.5 3-4.5 3-6 0-5-6-10-6-10z"/></svg> <span id="streak-count">0</span></button>
         </div>
         
         <div class="center-content">
@@ -327,6 +327,7 @@
     <div id="streak-modal" class="modal-overlay hidden">
         <div class="modal-box">
             <h2 data-i18n="weekly_streak">Weekly Streak</h2>
+            <div id="streak-summary" style="font-size: 0.95rem; color: #c7d2fe; margin-bottom: 12px;">Current streak: 0 days</div>
             <div id="weekly-streak-container" style="display: flex; gap: 12px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin: 20px 0; justify-content: center;">
                 <!-- Content injected by JS -->
             </div>
@@ -336,6 +337,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     <script src="firebase-auth.js"></script>
     <script src="audio.js"></script>
     <script src="app.js?v=21"></script>

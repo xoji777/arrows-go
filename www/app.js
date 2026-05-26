@@ -606,6 +606,30 @@ function getLocalDateStr(d = new Date()) {
     return `${y}-${m}-${day}`;
 }
 
+function computeCurrentStreak() {
+    const completedSet = new Set(userData.completedDays || []);
+    if (completedSet.size === 0) return 0;
+
+    let streak = 0;
+    const current = new Date();
+    while (true) {
+        const dateKey = getLocalDateStr(current);
+        if (!completedSet.has(dateKey)) break;
+        streak += 1;
+        current.setDate(current.getDate() - 1);
+    }
+    return streak;
+}
+
+function updateUserStreak() {
+    const streak = computeCurrentStreak();
+    if (userData.streak !== streak) {
+        userData.streak = streak;
+        saveData();
+    }
+    if (streakCount) streakCount.innerText = streak;
+}
+
 // Haptics helper
 function vibrate(style = 'Light') {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
@@ -669,6 +693,7 @@ function loadUserDataForUid(uid) {
     } else {
         userData = normalizeUserData({});
     }
+    updateUserStreak();
 }
 
 function setLoginError(msg) {
@@ -1197,6 +1222,15 @@ function saveData() {
     const key = getStorageKey(uid);
     try {
         localStorage.setItem(key, JSON.stringify(userData));
+        if (firebaseUser && window.ArrowsFirebase && window.ArrowsFirebase.db) {
+            window.ArrowsFirebase.db.collection('users').doc(firebaseUser.uid).set({
+                name: firebaseUser.displayName || userData.displayName || 'Player',
+                level: Number(userData.level) || 1,
+                score: Number(userData.score) || 0,
+                coins: Number(userData.coins) || 0,
+                lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(err => console.warn('Firestore sync failed', err));
+        }
     } catch (e) {
         console.warn('Could not save to localStorage', e);
     }
@@ -1294,6 +1328,7 @@ if (hintBtn) {
 function updateMenuUI(rollDifficulty = false) {
     if (!userData.level) userData.level = 1;
     if (menuLevelText) menuLevelText.innerText = `${t('menu_level')} ${userData.level}`;
+    updateUserStreak();
     if (streakCount) streakCount.innerText = userData.streak || 0;
     updateWeeklyStreak();
 
@@ -1317,9 +1352,15 @@ function updateMenuUI(rollDifficulty = false) {
     if (!leagueCard) return;
 
 function updateWeeklyStreak() {
+    updateUserStreak();
     const container = document.getElementById('weekly-streak-container');
     if (!container) return;
     container.innerHTML = '';
+
+    const summary = document.getElementById('streak-summary');
+    if (summary) {
+        summary.innerText = `Current streak: ${userData.streak || 0} days`;
+    }
     
     const todayObj = new Date();
     const day = todayObj.getDay() || 7; 
@@ -1877,16 +1918,36 @@ if (playBtn) {
 }
 
 if (leagueCard) {
-    leagueCard.addEventListener('click', () => {
+    leagueCard.addEventListener('click', async () => {
         if (userData.level <= 5) return;
         if (typeof playSound !== 'undefined') playSound('click');
         vibrate('Light');
-        const rank = Math.max(1, 10000 - userData.level * 15 - Math.floor(Math.random() * 5));
+
         const originalHTML = leagueCard.innerHTML;
-        leagueCard.innerHTML = `<h3 style="color: #10b981;">Global Rank</h3><div style="font-size: 2.5rem; font-weight: bold; margin: 20px 0;">#${rank.toLocaleString()}</div><div style="font-size: 0.8rem; color: #a5b4fc;">Top ${Math.max(1, Math.floor(rank / 1000))}% of players</div>`;
-        setTimeout(() => {
-            leagueCard.innerHTML = originalHTML;
-        }, 3000);
+        leagueCard.innerHTML = `<h3 style="color: #10b981;">Global Rank</h3><div style="font-size: 1rem; margin: 15px 0; color: #d1d1e0;">Loading global rank...</div>`;
+
+        if (!window.ArrowsFirebase?.db || !firebaseUser) {
+            leagueCard.innerHTML = `<h3 style="color: #10b981;">Global Rank</h3><div style="font-size: 1rem; margin: 15px 0; color: #d1d1e0;">Sign in to see real global ranking.</div>`;
+            setTimeout(() => {
+                leagueCard.innerHTML = originalHTML;
+            }, 3000);
+            return;
+        }
+
+        try {
+            const myScore = Number(userData.score || 0);
+            const higherQuery = await window.ArrowsFirebase.db.collection('users')
+                .where('score', '>', myScore)
+                .get();
+            const rank = higherQuery.size + 1;
+            leagueCard.innerHTML = `<h3 style="color: #10b981;">Global Rank</h3><div style="font-size: 2.5rem; font-weight: bold; margin: 20px 0;">#${rank.toLocaleString()}</div><div style="font-size: 0.8rem; color: #a5b4fc;">Score ${myScore} • ${higherQuery.size} players above you</div>`;
+        } catch (err) {
+            console.error('Global rank lookup failed', err);
+            leagueCard.innerHTML = `<h3 style="color: #10b981;">Global Rank</h3><div style="font-size: 1rem; margin: 15px 0; color: #f87171;">Unable to load rank. Try again later.</div>`;
+            setTimeout(() => {
+                leagueCard.innerHTML = originalHTML;
+            }, 3000);
+        }
     });
 }
 
@@ -2481,6 +2542,7 @@ function levelComplete() {
     if (!userData.completedDays.includes(todayStr)) {
         userData.completedDays.push(todayStr);
     }
+    updateUserStreak();
 
     if (isDailyChallengeMode) {
         userData.lastDailyChallenge = todayStr;

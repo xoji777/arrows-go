@@ -14,11 +14,13 @@ if (!firebase.apps.length) {
 }
 
 const auth = firebase.auth();
+const db = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 window.ArrowsFirebase = {
     auth,
+    db,
     signInWithGoogle() {
         return auth.signInWithPopup(googleProvider);
     },
