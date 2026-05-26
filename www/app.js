@@ -2729,11 +2729,13 @@ if (canvas) {
     canvas.addEventListener('pointermove', (e) => {
         if (!isGameRunning) return;
         if (e.pointerType === 'touch' && pinchPointers.has(e.pointerId)) {
+            e.preventDefault();
             pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (pinchPointers.size === 2) updatePinchZoom();
             return;
         }
         if (dragStart && dragPointerId === e.pointerId) {
+            e.preventDefault();
             updateDrag(e);
             return;
         }
@@ -2804,7 +2806,8 @@ if (canvas) {
         const y = e.clientY - rect.top;
 
         const clickedPiece = findPieceAtPixel(x, y);
-        if (!clickedPiece && canUseZoomPan()) {
+        if (canUseZoomPan() && !clickedPiece) {
+            e.preventDefault();
             dragPointerId = e.pointerId;
             dragStart = { x: e.clientX, y: e.clientY, ox: offsetX, oy: offsetY };
             return;
