@@ -485,15 +485,40 @@ body.user-signed-in #login-modal {
     align-items: center;
     justify-content: center;
     gap: 30px;
-    padding-bottom: 90px;
+    padding-bottom: 70px;
     padding-top: 10px;
     overflow-y: auto;
 }
 
-@media (max-height: 700px) {
+@media (max-height: 760px) {
     .center-content {
-        gap: 15px;
-        padding-bottom: 75px;
+        gap: 16px;
+        padding-top: 16px;
+        padding-bottom: 58px;
+    }
+}
+
+@media (max-width: 520px) {
+    .center-content {
+        gap: 14px;
+        padding: 14px 16px 58px;
+    }
+    #play-btn {
+        width: 88%;
+        max-width: none;
+        font-size: 1.25rem;
+        padding: 14px 18px;
+    }
+    .logo {
+        font-size: 2rem;
+    }
+    .league-card {
+        width: 100%;
+        max-width: 280px;
+    }
+    .traps-card {
+        width: 100%;
+        max-width: 320px;
     }
 }
 
@@ -630,6 +655,7 @@ body.light-mode .diff-btn {
     cursor: pointer;
     box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
     transition: transform 0.1s;
+    min-height: 56px;
 }
 
 #play-btn:active {
@@ -1038,7 +1064,7 @@ body.light-mode .fab {
     margin: 0 auto;
 }
 #shop-screen {
-    background: rgba(10, 11, 15, 0.95);
+    background: transparent;
 }
 #shop-screen .collection-content {
     background: transparent;

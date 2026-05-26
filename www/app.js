@@ -2490,7 +2490,7 @@ function draw() {
 }
 
 function animateEscape(piece, onComplete) {
-    let speed = cellSize * 0.95;
+    let speed = cellSize * 0.5;
     function step() {
         if(!isGameRunning) return;
         piece.offset += speed;
@@ -2509,7 +2509,7 @@ function animateBump(piece, onComplete) {
     let forward = true;
     let dist = getDistanceToBlocker(piece);
     let maxBump = dist ? Math.max(cellSize * 0.15, dist * cellSize - cellSize * 0.5) : (cellSize * 0.15); 
-    let speed = cellSize * 0.6;
+    let speed = cellSize * 0.4;
     
     function step() {
         if(!isGameRunning) return;
