@@ -2806,7 +2806,9 @@ if (canvas) {
         const y = e.clientY - rect.top;
 
         const clickedPiece = findPieceAtPixel(x, y);
-        if (canUseZoomPan() && !clickedPiece) {
+        // Allow panning after zoom or when difficulty allows it even if touching a piece
+        const zoomedEnough = Math.abs(zoomScale - 1) > 0.02;
+        if (canUseZoomPan() && (zoomedEnough || !clickedPiece)) {
             e.preventDefault();
             dragPointerId = e.pointerId;
             dragStart = { x: e.clientX, y: e.clientY, ox: offsetX, oy: offsetY };
