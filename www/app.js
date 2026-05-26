@@ -1090,7 +1090,9 @@ function onFirebaseAuthStateChanged(user) {
         }
         userData.email = user.email || null;
         userData.googleId = user.uid;
-        userData.picture = user.photoURL || null;
+        if (!userData.picture) {
+            userData.picture = user.photoURL || null;
+        }
         saveData();
         updateUserDisplay(user);
         enterGameAfterLogin();
@@ -1224,7 +1226,8 @@ function saveData() {
         localStorage.setItem(key, JSON.stringify(userData));
         if (firebaseUser && window.ArrowsFirebase && window.ArrowsFirebase.db) {
             window.ArrowsFirebase.db.collection('users').doc(firebaseUser.uid).set({
-                name: firebaseUser.displayName || userData.displayName || 'Player',
+                name: userData.username || firebaseUser.displayName || 'Player',
+                picture: userData.picture || firebaseUser.photoURL || null,
                 level: Number(userData.level) || 1,
                 score: Number(userData.score) || 0,
                 coins: Number(userData.coins) || 0,
@@ -1351,6 +1354,24 @@ function updateMenuUI(rollDifficulty = false) {
 
     if (!leagueCard) return;
 
+    if (userData.level <= 5) {
+        leagueCard.innerHTML = `
+            <h3 data-i18n="leagues">${t('leagues')}</h3>
+            <div class="shield" style="filter: grayscale(1); opacity: 0.5; margin: 15px 0; font-size: 3rem;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8c8c9e" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <div class="timer" style="font-size: 0.8rem; color: #8c8c9e;">${t('unlocks_at')} 6</div>
+        `;
+    } else {
+        leagueCard.innerHTML = `
+            <h3 data-i18n="leagues">${t('leagues')}</h3>
+            <div class="shield" style="font-size: 4rem; margin: 15px 0; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            <div class="score" style="background: rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.9rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M21 3L3 10.53L9.82 14.18L13.47 21L21 3Z"/></svg>
+                <span>${userData.score} (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> ${userData.coins})</span>
+            </div>
+        `;
+    }
+}
+
 function updateWeeklyStreak() {
     updateUserStreak();
     const container = document.getElementById('weekly-streak-container');
@@ -1402,24 +1423,6 @@ function updateWeeklyStreak() {
         dayDiv.appendChild(nameSpan);
         dayDiv.appendChild(checkSpan);
         container.appendChild(dayDiv);
-    }
-}
-
-    if (userData.level <= 5) {
-        leagueCard.innerHTML = `
-            <h3 data-i18n="leagues">${t('leagues')}</h3>
-            <div class="shield" style="filter: grayscale(1); opacity: 0.5; margin: 15px 0; font-size: 3rem;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8c8c9e" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-            <div class="timer" style="font-size: 0.8rem; color: #8c8c9e;">${t('unlocks_at')} 6</div>
-        `;
-    } else {
-        leagueCard.innerHTML = `
-            <h3 data-i18n="leagues">${t('leagues')}</h3>
-            <div class="shield" style="font-size: 4rem; margin: 15px 0; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-            <div class="score" style="background: rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.9rem;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M21 3L3 10.53L9.82 14.18L13.47 21L21 3Z"/></svg>
-                <span>${userData.score} (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> ${userData.coins})</span>
-            </div>
-        `;
     }
 }
 
