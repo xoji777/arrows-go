@@ -534,6 +534,8 @@ let offsetY = 0;
 let pinchPointers = new Map();
 let pinchStartDistance = 0;
 let pinchStartZoom = 1;
+let dragPointerId = null;
+let dragStart = null;
 
 const DIR = { UP: { dx: 0, dy: -1 }, DOWN: { dx: 0, dy: 1 }, LEFT: { dx: -1, dy: 0 }, RIGHT: { dx: 1, dy: 0 } };
 const DIRS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
@@ -2661,6 +2663,10 @@ if (canvas) {
         return Math.hypot(a.x - b.x, a.y - b.y);
     }
 
+    function canUseZoomPan() {
+        return window.currentDifficulty && window.currentDifficulty.tier > 1;
+    }
+
     function applyZoomAt(centerX, centerY, newZoom) {
         newZoom = clamp(newZoom, MIN_ZOOM, MAX_ZOOM);
         const prevCellSize = cellSize;
@@ -2675,13 +2681,49 @@ if (canvas) {
         draw();
     }
 
+    function clampPan(x, min, max) {
+        return Math.max(min, Math.min(max, x));
+    }
+
+    function clampPanOffset(x, y) {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        const totalW = cols * cellSize;
+        const totalH = rows * cellSize;
+
+        if (totalW <= w) {
+            x = (w - totalW) / 2;
+        } else {
+            x = clampPan(x, w - totalW, 0);
+        }
+
+        if (totalH <= h) {
+            y = (h - totalH) / 2;
+        } else {
+            y = clampPan(y, h - totalH, 0);
+        }
+
+        return { x, y };
+    }
+
     function updatePinchZoom() {
         const points = Array.from(pinchPointers.values());
-        if (points.length !== 2 || pinchStartDistance <= 0) return;
+        if (!canUseZoomPan() || points.length !== 2 || pinchStartDistance <= 0) return;
         const newDist = getTouchDistance(points[0], points[1]);
         const centerX = (points[0].x + points[1].x) / 2 - canvas.getBoundingClientRect().left;
         const centerY = (points[0].y + points[1].y) / 2 - canvas.getBoundingClientRect().top;
         applyZoomAt(centerX, centerY, pinchStartZoom * (newDist / pinchStartDistance));
+    }
+
+    function updateDrag(e) {
+        if (!dragStart || dragPointerId !== e.pointerId) return;
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        const next = clampPanOffset(dragStart.ox + dx, dragStart.oy + dy);
+        offsetX = next.x;
+        offsetY = next.y;
+        updatePixelPaths();
+        draw();
     }
 
     canvas.addEventListener('pointermove', (e) => {
@@ -2689,6 +2731,10 @@ if (canvas) {
         if (e.pointerType === 'touch' && pinchPointers.has(e.pointerId)) {
             pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (pinchPointers.size === 2) updatePinchZoom();
+            return;
+        }
+        if (dragStart && dragPointerId === e.pointerId) {
+            updateDrag(e);
             return;
         }
         const style = getHintStyle(window.currentDifficulty);
@@ -2711,15 +2757,34 @@ if (canvas) {
             pinchPointers.delete(e.pointerId);
             if (pinchPointers.size < 2) pinchStartDistance = 0;
         }
+        if (dragPointerId === e.pointerId) {
+            dragPointerId = null;
+            dragStart = null;
+        }
     });
     canvas.addEventListener('pointercancel', (e) => {
         if (e.pointerType === 'touch') {
             pinchPointers.delete(e.pointerId);
             if (pinchPointers.size < 2) pinchStartDistance = 0;
         }
+        if (dragPointerId === e.pointerId) {
+            dragPointerId = null;
+            dragStart = null;
+        }
     });
+    canvas.addEventListener('wheel', (e) => {
+        if (!isGameRunning || !canUseZoomPan()) return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const centerX = e.clientX - rect.left;
+        const centerY = e.clientY - rect.top;
+        const delta = e.deltaY > 0 ? -0.08 : 0.08;
+        applyZoomAt(centerX, centerY, zoomScale + delta);
+    }, { passive: false });
     canvas.addEventListener('pointerdown', (e) => {
         if (!isGameRunning) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
         if (e.pointerType === 'touch') {
             canvas.setPointerCapture(e.pointerId);
             pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -2727,6 +2792,8 @@ if (canvas) {
                 const points = Array.from(pinchPointers.values());
                 pinchStartDistance = getTouchDistance(points[0], points[1]);
                 pinchStartZoom = zoomScale;
+                dragPointerId = null;
+                dragStart = null;
                 return;
             }
         }
@@ -2737,6 +2804,11 @@ if (canvas) {
         const y = e.clientY - rect.top;
 
         const clickedPiece = findPieceAtPixel(x, y);
+        if (!clickedPiece && canUseZoomPan()) {
+            dragPointerId = e.pointerId;
+            dragStart = { x: e.clientX, y: e.clientY, ox: offsetX, oy: offsetY };
+            return;
+        }
         
         if (clickedPiece) {
             if (clickedPiece.isLocked) {
