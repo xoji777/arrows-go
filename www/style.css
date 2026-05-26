@@ -499,14 +499,6 @@ body.user-signed-in #login-modal {
     }
 }
 
-.menu-card-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    width: 100%;
-    max-width: 560px;
-    justify-items: center;
-}
 
 .league-card {
     background: #2b2d3d;
@@ -515,12 +507,12 @@ body.user-signed-in #login-modal {
     text-align: center;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     width: 100%;
-    max-width: 260px;
+    max-width: 340px;
 }
 
 .traps-card {
     width: 100%;
-    max-width: 260px;
+    max-width: 340px;
 }
 
 .league-card h3 {
