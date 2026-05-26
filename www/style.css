@@ -909,7 +909,7 @@ body.light-mode .fab {
 }
 
 #hint-btn {
-    bottom: 10px;
+    bottom: 16px;
 }
 
 .hint-badge {
@@ -994,10 +994,22 @@ body.light-mode .fab {
     opacity: 0.6;
 }
 
+.reward-item.special.locked {
+    filter: grayscale(1) brightness(0.4);
+    opacity: 0.55;
+    border-color: #7c3aed;
+}
+
 .reward-item.unlocked {
     border-color: #ffd700;
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
     animation: unlock-pulse 2s infinite;
+}
+
+.reward-item.special.unlocked {
+    border-color: #a855f7;
+    background: linear-gradient(180deg, rgba(79, 70, 229, 0.16), rgba(14, 165, 233, 0.08));
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.35);
 }
 
 @keyframes unlock-pulse {

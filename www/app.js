@@ -524,9 +524,16 @@ const SHOP_SKINS = [
 // Grid Settings
 const cols = 20;
 const rows = 28;
-let cellSize = 30;
+let baseCellSize = 30;
+let zoomScale = 1;
+const MIN_ZOOM = 0.8;
+const MAX_ZOOM = 1.6;
+let cellSize = baseCellSize;
 let offsetX = 0;
 let offsetY = 0;
+let pinchPointers = new Map();
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
 
 const DIR = { UP: { dx: 0, dy: -1 }, DOWN: { dx: 0, dy: 1 }, LEFT: { dx: -1, dy: 0 }, RIGHT: { dx: 1, dy: 0 } };
 const DIRS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
@@ -547,10 +554,10 @@ const pathHintBtn = document.getElementById('path-hint-btn');
 
 const DIFFICULTIES = [
     { name: 'EASY', key: 'menu_easy', cssClass: 'easy', color: '#22c55e', tier: 1, minPieces: 35, maxPieces: 50, minPath: 3, maxPath: 6 },
-    { name: 'HARD', key: 'menu_hard', cssClass: 'hard', color: '#f59e0b', tier: 2, minPieces: 55, maxPieces: 80, minPath: 4, maxPath: 8 },
-    { name: 'SUPER HARD', key: 'menu_super_hard', cssClass: 'super', color: '#f97316', tier: 3, minPieces: 85, maxPieces: 110, minPath: 5, maxPath: 10 },
-    { name: 'EXTRA HARD', key: 'menu_extra_hard', cssClass: 'extra', color: '#ef4444', tier: 4, minPieces: 110, maxPieces: 135, minPath: 6, maxPath: 12 },
-    { name: 'NIGHTMARE', key: 'menu_nightmare', cssClass: 'nightmare', color: '#b91c1c', tier: 5, minPieces: 130, maxPieces: 160, minPath: 8, maxPath: 16 }
+    { name: 'HARD', key: 'menu_hard', cssClass: 'hard', color: '#f59e0b', tier: 2, minPieces: 75, maxPieces: 105, minPath: 4, maxPath: 8 },
+    { name: 'SUPER HARD', key: 'menu_super_hard', cssClass: 'super', color: '#f97316', tier: 3, minPieces: 105, maxPieces: 135, minPath: 5, maxPath: 10 },
+    { name: 'EXTRA HARD', key: 'menu_extra_hard', cssClass: 'extra', color: '#ef4444', tier: 4, minPieces: 130, maxPieces: 165, minPath: 6, maxPath: 12 },
+    { name: 'NIGHTMARE', key: 'menu_nightmare', cssClass: 'nightmare', color: '#b91c1c', tier: 5, minPieces: 155, maxPieces: 190, minPath: 8, maxPath: 16 }
 ];
 
 let nextPlayDifficulty = null;
@@ -1468,12 +1475,13 @@ function renderCollection() {
         item.style.justifyContent = 'center';
         
         let hasReward = userData.rewards.includes(`Trophy_${i}`);
+        const tierClass = i >= 12 ? 'special' : '';
         
         if (hasReward) {
-            item.className = 'reward-item unlocked';
+            item.className = `reward-item unlocked ${tierClass}`.trim();
             item.innerHTML = `<div style="font-size: 2.2rem; filter: drop-shadow(0 2px 5px rgba(255,215,0,0.5));">🏆</div><div style="font-size: 0.75rem; color: #fff; margin-top: 5px; font-weight: bold;">${monthNames[i]}</div>`;
         } else {
-            item.className = 'reward-item locked';
+            item.className = `reward-item locked ${tierClass}`.trim();
             item.innerHTML = `<div style="font-size: 2.2rem; opacity: 0.3; filter: grayscale(1);">🏆</div><div style="font-size: 0.75rem; color: #8c8c9e; margin-top: 5px;">${monthNames[i]}</div>`;
         }
         collectionGrid.appendChild(item);
@@ -1768,6 +1776,7 @@ function generateLevelAttempt(difficulty, numPieces, shapeType) {
             dirVec: DIR[headInfo.dirName],
             offset: 0,
             state: 'IDLE',
+            errorMarked: false,
             isKey: false,
             isLocked: false
         });
@@ -2128,7 +2137,8 @@ function resize() {
 
     const maxCellW = w / (cols + 2);
     const maxCellH = h / (rows + 2);
-    cellSize = Math.min(maxCellW, maxCellH, 42);
+    baseCellSize = Math.min(maxCellW, maxCellH, 42);
+    cellSize = baseCellSize * zoomScale;
     if (!cellSize || cellSize < 4) {
         scheduleGameResize();
         return;
@@ -2249,7 +2259,7 @@ function getPathPoints(piece) {
 }
 
 function getPieceColor(piece) {
-    if (piece.state === 'ERROR') return '#FF3B30';
+    if (piece.errorMarked || piece.state === 'ERROR') return '#FF3B30';
     return getGameTheme().arrow;
 }
 
@@ -2643,8 +2653,44 @@ if (undoBtn) undoBtn.addEventListener('click', () => {
 });
 
 if (canvas) {
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function getTouchDistance(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function applyZoomAt(centerX, centerY, newZoom) {
+        newZoom = clamp(newZoom, MIN_ZOOM, MAX_ZOOM);
+        const prevCellSize = cellSize;
+        zoomScale = newZoom;
+        cellSize = baseCellSize * zoomScale;
+        arrowLineWidth = Math.max(cellSize * ARROW_WIDTH_RATIO, 4);
+
+        const ratio = cellSize / prevCellSize;
+        offsetX = centerX - (centerX - offsetX) * ratio;
+        offsetY = centerY - (centerY - offsetY) * ratio;
+        updatePixelPaths();
+        draw();
+    }
+
+    function updatePinchZoom() {
+        const points = Array.from(pinchPointers.values());
+        if (points.length !== 2 || pinchStartDistance <= 0) return;
+        const newDist = getTouchDistance(points[0], points[1]);
+        const centerX = (points[0].x + points[1].x) / 2 - canvas.getBoundingClientRect().left;
+        const centerY = (points[0].y + points[1].y) / 2 - canvas.getBoundingClientRect().top;
+        applyZoomAt(centerX, centerY, pinchStartZoom * (newDist / pinchStartDistance));
+    }
+
     canvas.addEventListener('pointermove', (e) => {
         if (!isGameRunning) return;
+        if (e.pointerType === 'touch' && pinchPointers.has(e.pointerId)) {
+            pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pinchPointers.size === 2) updatePinchZoom();
+            return;
+        }
         const style = getHintStyle(window.currentDifficulty);
         if (style.mode !== 'hover') return;
         const rect = canvas.getBoundingClientRect();
@@ -2660,75 +2706,102 @@ if (canvas) {
             if (isGameRunning) draw();
         }
     });
-    canvas.addEventListener('pointerdown', (e) => {
-    if(!isGameRunning) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const clickedPiece = findPieceAtPixel(x, y);
-    
-    if (clickedPiece) {
-        if (clickedPiece.isLocked) {
-            if(typeof playSound !== 'undefined') playSound('error');
-            vibrate('Medium');
-            animateBump(clickedPiece, () => { draw(); });
-            return;
+    canvas.addEventListener('pointerup', (e) => {
+        if (e.pointerType === 'touch') {
+            pinchPointers.delete(e.pointerId);
+            if (pinchPointers.size < 2) pinchStartDistance = 0;
         }
+    });
+    canvas.addEventListener('pointercancel', (e) => {
+        if (e.pointerType === 'touch') {
+            pinchPointers.delete(e.pointerId);
+            if (pinchPointers.size < 2) pinchStartDistance = 0;
+        }
+    });
+    canvas.addEventListener('pointerdown', (e) => {
+        if (!isGameRunning) return;
+        if (e.pointerType === 'touch') {
+            canvas.setPointerCapture(e.pointerId);
+            pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pinchPointers.size === 2) {
+                const points = Array.from(pinchPointers.values());
+                pinchStartDistance = getTouchDistance(points[0], points[1]);
+                pinchStartZoom = zoomScale;
+                return;
+            }
+        }
+        if (pinchPointers.size > 1) return;
 
-        let blockers = getBlockers(clickedPiece);
-        if (blockers.length === 0) {
-            // Save state for undo
-            const clone = { 
-                ...clickedPiece, 
-                gridPaths: JSON.parse(JSON.stringify(clickedPiece.gridPaths)), 
-                dirVec: {...clickedPiece.dirVec} 
-            };
-            clone.offset = 0;
-            clone.state = 'IDLE';
-            moveHistory.push(clone);
-            
-            if(typeof playSound !== 'undefined') playSound('tap');
-            vibrate('Light');
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-            const idx = pieces.findIndex(p => p.id === clickedPiece.id);
-            pieces.splice(idx, 1);
-            animatingPieces.push(clickedPiece);
+        const clickedPiece = findPieceAtPixel(x, y);
+        
+        if (clickedPiece) {
+            if (clickedPiece.isLocked) {
+                if(typeof playSound !== 'undefined') playSound('error');
+                vibrate('Medium');
+                animateBump(clickedPiece, () => { draw(); });
+                return;
+            }
 
-            if (clickedPiece.isKey) {
-                if(typeof playSound !== 'undefined') playSound('win');
-                pieces.forEach(p => {
-                    if (p.isLocked) p.isLocked = false;
+            let blockers = getBlockers(clickedPiece);
+            if (blockers.length === 0) {
+                // Save state for undo
+                const clone = { 
+                    ...clickedPiece, 
+                    gridPaths: JSON.parse(JSON.stringify(clickedPiece.gridPaths)), 
+                    dirVec: {...clickedPiece.dirVec} 
+                };
+                clone.offset = 0;
+                clone.state = 'IDLE';
+                moveHistory.push(clone);
+                
+                if(typeof playSound !== 'undefined') playSound('tap');
+                vibrate('Light');
+
+                const idx = pieces.findIndex(p => p.id === clickedPiece.id);
+                pieces.splice(idx, 1);
+                animatingPieces.push(clickedPiece);
+
+                if (clickedPiece.isKey) {
+                    if(typeof playSound !== 'undefined') playSound('win');
+                    pieces.forEach(p => {
+                        if (p.isLocked) p.isLocked = false;
+                    });
+                }
+                
+                animateEscape(clickedPiece, () => {
+                    animatingPieces = animatingPieces.filter(p => p.id !== clickedPiece.id);
+                    if (pieces.length === 0 && animatingPieces.length === 0) {
+                        levelComplete();
+                    }
+                });
+            } else {
+                if(typeof playSound !== 'undefined') playSound('error');
+                vibrate('Heavy');
+
+                clickedPiece.state = 'ERROR';
+                blockers.forEach(b => b.state = 'ERROR');
+                const lostLife = !clickedPiece.errorMarked;
+                clickedPiece.errorMarked = true;
+                animateBump(clickedPiece, () => {
+                    clickedPiece.state = 'IDLE';
+                    blockers.forEach(b => b.state = 'IDLE');
+                    draw();
+                    if (lostLife) {
+                        lives--;
+                        updateHearts();
+                        if (lives <= 0 && overlay.classList.contains('hidden')) {
+                            modalTitle.innerText = "Game Over";
+                            modalBtn.innerText = "Try Again";
+                            overlay.classList.remove('hidden');
+                        }
+                    }
                 });
             }
-            
-            animateEscape(clickedPiece, () => {
-                animatingPieces = animatingPieces.filter(p => p.id !== clickedPiece.id);
-                if (pieces.length === 0 && animatingPieces.length === 0) {
-                    levelComplete();
-                }
-            });
-        } else {
-            if(typeof playSound !== 'undefined') playSound('error');
-            vibrate('Heavy');
-
-            clickedPiece.state = 'ERROR';
-            blockers.forEach(b => b.state = 'ERROR');
-            animateBump(clickedPiece, () => {
-                clickedPiece.state = 'IDLE';
-                blockers.forEach(b => b.state = 'IDLE');
-                draw(); 
-                lives--;
-                updateHearts();
-                
-                if (lives <= 0 && overlay.classList.contains('hidden')) {
-                    modalTitle.innerText = "Game Over";
-                    modalBtn.innerText = "Try Again";
-                    overlay.classList.remove('hidden');
-                }
-            });
         }
-    }
     });
 }
 
