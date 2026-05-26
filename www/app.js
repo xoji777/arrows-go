@@ -514,7 +514,11 @@ const SHOP_SKINS = [
     { id: 'space', name: 'Space Theme', price: 1000 },
     { id: 'ocean', name: 'Deep Ocean', price: 1500 },
     { id: 'desert', name: 'Desert Sand', price: 2000 },
-    { id: 'forest', name: 'Dark Forest', price: 2500 }
+    { id: 'forest', name: 'Dark Forest', price: 2500 },
+    { id: 'sunset', name: 'Sunset Glow', price: 3200 },
+    { id: 'ice', name: 'Frozen Ice', price: 3800 },
+    { id: 'lava', name: 'Lava Burst', price: 4200 },
+    { id: 'galaxy', name: 'Galactic Sky', price: 5000 }
 ];
 
 // Grid Settings
@@ -1453,8 +1457,8 @@ if (navSettings) navSettings.addEventListener('click', () => { hideAllScreens();
 // --- RENDERERS ---
 function renderCollection() {
     collectionGrid.innerHTML = '';
-    const totalSlots = 12;
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const totalSlots = 16;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Elite", "Champion", "Legend", "Master"];
     
     for (let i = 0; i < totalSlots; i++) {
         const item = document.createElement('div');
@@ -1493,6 +1497,10 @@ function renderShop() {
         else if (skin.id === 'ocean') previewBg = 'linear-gradient(45deg, #0c4a6e, #38bdf8)';
         else if (skin.id === 'desert') previewBg = 'linear-gradient(45deg, #ffedd5, #ea580c)';
         else if (skin.id === 'forest') previewBg = 'linear-gradient(45deg, #022c22, #4ade80)';
+        else if (skin.id === 'sunset') previewBg = 'linear-gradient(45deg, #fb7185, #f59e0b)';
+        else if (skin.id === 'ice') previewBg = 'linear-gradient(45deg, #bae6fd, #0ea5e9)';
+        else if (skin.id === 'lava') previewBg = 'linear-gradient(45deg, #dc2626, #f97316)';
+        else if (skin.id === 'galaxy') previewBg = 'linear-gradient(45deg, #7c3aed, #22d3ee)';
         preview.style.background = previewBg;
         
         const name = document.createElement('span');

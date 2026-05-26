@@ -483,10 +483,10 @@ body.user-signed-in #login-modal {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 30px;
+    justify-content: flex-start;
+    gap: 22px;
     padding-bottom: calc(70px + env(safe-area-inset-bottom));
-    padding-top: 10px;
+    padding-top: 18px;
     min-height: 0;
     overflow-y: auto;
 }
@@ -906,6 +906,10 @@ body.light-mode .fab {
 
 .fab-right {
     right: 20px;
+}
+
+#hint-btn {
+    bottom: 10px;
 }
 
 .hint-badge {
