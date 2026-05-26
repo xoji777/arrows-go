@@ -343,9 +343,9 @@ body.light-mode .name-edit-input {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 240px;
-    height: 240px;
-    margin: -120px 0 0 -120px;
+    width: 280px;
+    height: 280px;
+    margin: -140px 0 0 -140px;
     border-radius: 50%;
     border: 3px solid rgba(255, 255, 255, 0.95);
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62);
@@ -458,6 +458,8 @@ body.user-signed-in #login-modal {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
+    z-index: 10;
 }
 
 .streak {
@@ -471,6 +473,9 @@ body.user-signed-in #login-modal {
     align-items: center;
     gap: 5px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 20;
+    pointer-events: auto;
 }
 
 .center-content {
@@ -481,6 +486,7 @@ body.user-signed-in #login-modal {
     justify-content: space-around;
     padding-bottom: 90px;
     padding-top: 10px;
+    overflow-y: auto;
 }
 
 .league-card {
@@ -702,6 +708,8 @@ body.light-mode .diff-btn {
 .path-hint-btn {
     position: absolute;
     right: 20px;
+    bottom: max(30px, env(safe-area-inset-bottom));
+    z-index: 100;
     width: 46px;
     height: 46px;
     padding: 0;
@@ -1060,13 +1068,13 @@ body.light-mode .fab {
 
 .trophy-container {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     width: 100%;
 }
 .trophy-img {
-    font-size: 6rem;
+    font-size: 4rem;
     filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 .progress-wrapper {
     display: flex;
@@ -1096,7 +1104,7 @@ body.light-mode .fab {
 
 #calendar-month {
     color: #6366f1;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     font-size: 1.5rem;
 }
 

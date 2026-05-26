@@ -1876,6 +1876,20 @@ if (playBtn) {
     });
 }
 
+if (leagueCard) {
+    leagueCard.addEventListener('click', () => {
+        if (userData.level <= 5) return;
+        if (typeof playSound !== 'undefined') playSound('click');
+        vibrate('Light');
+        const rank = Math.max(1, 10000 - userData.level * 15 - Math.floor(Math.random() * 5));
+        const originalHTML = leagueCard.innerHTML;
+        leagueCard.innerHTML = `<h3 style="color: #10b981;">Global Rank</h3><div style="font-size: 2.5rem; font-weight: bold; margin: 20px 0;">#${rank.toLocaleString()}</div><div style="font-size: 0.8rem; color: #a5b4fc;">Top ${Math.max(1, Math.floor(rank / 1000))}% of players</div>`;
+        setTimeout(() => {
+            leagueCard.innerHTML = originalHTML;
+        }, 3000);
+    });
+}
+
 if (trapsModeCard) {
     trapsModeCard.addEventListener('click', () => {
         if (Number(userData.level) <= 10) {
@@ -2032,11 +2046,16 @@ function resize() {
         return;
     }
 
-    canvas.width = w;
-    canvas.height = h;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    
+    ctx.scale(dpr, dpr);
 
-    const maxCellW = canvas.width / (cols + 2);
-    const maxCellH = canvas.height / (rows + 2);
+    const maxCellW = w / (cols + 2);
+    const maxCellH = h / (rows + 2);
     cellSize = Math.min(maxCellW, maxCellH, 42);
     if (!cellSize || cellSize < 4) {
         scheduleGameResize();
@@ -2044,8 +2063,8 @@ function resize() {
     }
     arrowLineWidth = Math.max(cellSize * ARROW_WIDTH_RATIO, 4);
     
-    offsetX = (canvas.width - cols * cellSize) / 2;
-    offsetY = (canvas.height - rows * cellSize) / 2;
+    offsetX = (w - cols * cellSize) / 2;
+    offsetY = (h - rows * cellSize) / 2;
     
     updatePixelPaths();
     draw();
