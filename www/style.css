@@ -485,8 +485,9 @@ body.user-signed-in #login-modal {
     align-items: center;
     justify-content: center;
     gap: 30px;
-    padding-bottom: 70px;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
     padding-top: 10px;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -495,30 +496,6 @@ body.user-signed-in #login-modal {
         gap: 16px;
         padding-top: 16px;
         padding-bottom: 58px;
-    }
-}
-
-@media (max-width: 520px) {
-    .center-content {
-        gap: 14px;
-        padding: 14px 16px 58px;
-    }
-    #play-btn {
-        width: 88%;
-        max-width: none;
-        font-size: 1.25rem;
-        padding: 14px 18px;
-    }
-    .logo {
-        font-size: 2rem;
-    }
-    .league-card {
-        width: 100%;
-        max-width: 280px;
-    }
-    .traps-card {
-        width: 100%;
-        max-width: 320px;
     }
 }
 
@@ -660,6 +637,30 @@ body.light-mode .diff-btn {
 
 #play-btn:active {
     transform: scale(0.95);
+}
+
+@media (max-width: 520px) {
+    .center-content {
+        gap: 14px;
+        padding: 14px 16px 58px;
+    }
+    #play-btn {
+        width: 88%;
+        max-width: none;
+        font-size: 1.25rem;
+        padding: 14px 18px;
+    }
+    .logo {
+        font-size: 2rem;
+    }
+    .league-card {
+        width: 100%;
+        max-width: 280px;
+    }
+    .traps-card {
+        width: 100%;
+        max-width: 320px;
+    }
 }
 
 /* Bottom Nav */
