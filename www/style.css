@@ -499,6 +499,14 @@ body.user-signed-in #login-modal {
     }
 }
 
+.menu-card-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    gap: 14px;
+    width: 100%;
+    max-width: 560px;
+    justify-items: stretch;
+}
 
 .league-card {
     background: #2b2d3d;
@@ -507,12 +515,12 @@ body.user-signed-in #login-modal {
     text-align: center;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     width: 100%;
-    max-width: 340px;
+    max-width: 100%;
 }
 
 .traps-card {
     width: 100%;
-    max-width: 340px;
+    max-width: 100%;
 }
 
 .league-card h3 {
@@ -661,13 +669,13 @@ body.light-mode .diff-btn {
         font-size: 2rem;
     }
     .menu-card-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
         max-width: 100%;
     }
     .league-card,
     .traps-card {
         width: 100%;
-        max-width: 100%;
+        max-width: none;
     }
 }
 
