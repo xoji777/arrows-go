@@ -1486,46 +1486,6 @@ body.light-mode #game-container {
     box-shadow: none !important;
 }
 
-/* iOS Glassmorphism & Transparency Optimization */
-@supports (-webkit-backdrop-filter: blur(1px)) {
-    body {
-        background: linear-gradient(135deg, rgba(15, 15, 25, 0.92) 0%, rgba(30, 20, 40, 0.88) 100%);
-    }
-    
-    .modal-box {
-        background: rgba(43, 45, 61, 0.8);
-        -webkit-backdrop-filter: blur(14px);
-        backdrop-filter: blur(14px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .screen {
-        background: rgba(0, 0, 0, 0.08);
-        -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
-    }
-    
-    #gameCanvas {
-        background: rgba(20, 20, 30, 0.8);
-        -webkit-backdrop-filter: blur(8px);
-        backdrop-filter: blur(8px);
-    }
-    
-    .menu-card-row {
-        background: rgba(255, 255, 255, 0.05);
-        -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .action-btn {
-        background: rgba(255, 255, 255, 0.08) !important;
-        -webkit-backdrop-filter: blur(8px);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-}
-
 @media (max-width: 600px) {
     .modal-box {
         max-width: 90vw;
