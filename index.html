@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Arrows">
+    <meta name="theme-color" content="#1c1d27">
+    <title>Arrows Puzzle</title>
+    <link rel="stylesheet" href="style.css?v=4">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+
+    <!-- Login (Firebase Google) -->
+    <div id="login-modal" class="modal-overlay">
+        <div class="modal-box login-box">
+            <h2 data-i18n="login_title">Welcome to Arrows</h2>
+            <p data-i18n="login_desc">Sign in with Google to play and save your progress.</p>
+            <p id="login-error" class="login-error hidden"></p>
+            <button type="button" id="google-login-btn">
+                <svg width="24" height="24" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.73 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                <span data-i18n="btn_login">Sign in with Google</span>
+            </button>
+            <p id="auth-loading" class="auth-loading hidden">Loading…</p>
+            <button type="button" id="guest-login-btn" class="guest-login-link" data-i18n="btn_guest">Play as Guest</button>
+        </div>
+    </div>
+
+    <!-- Main Menu Screen -->
+    <div id="main-menu" class="screen hidden auth-gated">
+        <div class="menu-header menu-header-user">
+            <div class="profile-wrap" id="profile-wrap">
+                <button type="button" class="profile-trigger" id="profile-menu-btn" aria-haspopup="true" aria-expanded="false">
+                    <span class="avatar-wrap">
+                        <img id="user-avatar" class="user-avatar hidden" alt="" width="40" height="40" referrerpolicy="no-referrer">
+                        <span id="user-avatar-fallback" class="user-avatar-fallback">P</span>
+                    </span>
+                    <span id="user-display-name" class="user-display-name">Player</span>
+                    <svg class="profile-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div id="profile-dropdown" class="profile-dropdown hidden">
+                    <button type="button" id="change-name-btn" class="profile-dropdown-item" data-i18n="profile_change_name">Change name</button>
+                    <button type="button" id="change-avatar-btn" class="profile-dropdown-item" data-i18n="profile_change_photo">Change profile photo</button>
+                    <button type="button" id="remove-avatar-btn" class="profile-dropdown-item" data-i18n="profile_remove_photo">Remove photo</button>
+                    <input type="file" id="avatar-upload" accept="image/jpeg,image/png,image/webp" hidden>
+                    <div class="profile-dropdown-divider"></div>
+                    <button type="button" id="profile-sign-out-btn" class="profile-dropdown-item profile-dropdown-signout" data-i18n="btn_sign_out">Sign out</button>
+                </div>
+            </div>
+            <button class="streak" id="streak-btn" style="cursor: pointer; border: none; font-family: inherit;"><svg width="18" height="18" viewBox="0 0 24 24" fill="#f97316" stroke="none" style="vertical-align: text-bottom; margin-right: 2px;"><path d="M12 2c0 0-4.5 3.5-4.5 8.5a4.5 4.5 0 0 0 1.3 3.1C8 14 8 15 8 15s1.5-1 2.5-1c1-1.5 2-3.5 2-3.5s.5 2 1.5 2.5c1 .5 2 1.5 2 3a4 4 0 0 1-1 2.6c2.5-1.5 3-4.5 3-6 0-5-6-10-6-10z"/></svg> <span id="streak-count">0</span></button>
+        </div>
+        
+        <div class="center-content">
+            <div class="menu-card-row">
+                <div class="league-card traps-card" id="traps-mode-card" style="cursor: pointer; background: linear-gradient(135deg, #1f2937, #111827); border: 1px solid #374151;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 0.85rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;" data-i18n="mode_special">Special Mode</span>
+                            <span style="font-size: 1.3rem; font-weight: 900; background: linear-gradient(90deg, #facc15, #f87171); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" data-i18n="title_traps">Traps & Locks</span>
+                        </div>
+                        <div id="traps-lock-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="league-card" id="league-card">
+                    <!-- Content injected by JS -->
+                </div>
+            </div>
+            
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2L2 22H22L12 2Z"/>
+                </svg>
+                rrows
+            </div>
+            
+            <div class="level-info-menu">
+                <h1 id="menu-level-text">Level 1</h1>
+                <p id="menu-diff-text" class="diff-easy">Easy</p>
+            </div>
+            
+            <button id="play-btn" data-i18n="btn_play">Play</button>
+        </div>
+        
+    </div>
+
+    <!-- Collection Screen -->
+    <div id="collection-screen" class="screen hidden">
+        <div class="menu-header" style="padding-top: calc(20px + env(safe-area-inset-top));">
+            <h2 data-i18n="title_collection">My Collection</h2>
+        </div>
+        <div class="collection-content">
+            <div class="collection-grid" id="collection-grid">
+                <!-- Rewards injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Screen -->
+    <div id="shop-screen" class="screen hidden">
+        <div class="menu-header" style="padding-top: calc(20px + env(safe-area-inset-top));">
+            <h2 data-i18n="title_shop">Shop</h2>
+        </div>
+        <div class="coins-display" id="shop-coins"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> <span id="shop-coins-val">0</span></div>
+        <div class="collection-content">
+            <div class="shop-grid" id="shop-grid">
+                <!-- Skins injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Challenge Screen -->
+    <div id="challenge-screen" class="screen hidden">
+        <div class="challenge-content">
+            <div class="trophy-container">
+                <div class="trophy-img"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
+                <div class="progress-wrapper">
+                    <span id="progress-val" class="progress-val">0</span>
+                    <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width: 0%;"></div></div>
+                    <span id="progress-max" class="progress-max">31</span>
+                </div>
+            </div>
+            
+            <h2 id="calendar-month">March 2026</h2>
+            
+            <div class="calendar-header">
+                <div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div><div>Su</div>
+            </div>
+            <div class="calendar-grid" id="calendar-days">
+                <!-- Days injected by JS -->
+            </div>
+
+            <button id="play-challenge-btn" class="big-blue-btn" data-i18n="btn_play">Play</button>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav hidden auth-gated" id="bottom-nav">
+        <div class="nav-item active" id="nav-home">
+            <div class="nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <span data-i18n="nav_home">Home</span>
+        </div>
+        <div class="nav-item" id="nav-challenge">
+            <div class="nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <span data-i18n="nav_challenge">Challenge</span>
+        </div>
+        <div class="nav-item" id="nav-collection">
+            <div class="nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+            <span data-i18n="nav_collection">Collection</span>
+        </div>
+        <div class="nav-item" id="nav-shop">
+            <div class="nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
+            <span data-i18n="nav_shop">Shop</span>
+        </div>
+        <div class="nav-item" id="nav-settings">
+            <div class="nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <span data-i18n="nav_settings">Settings</span>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+        <div class="top-bar">
+            <button id="back-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+            <div class="level-info-game">
+                <h1 id="game-level-text">Level 1</h1>
+                <div class="hearts" id="hearts-container"></div>
+            </div>
+            <div class="top-bar-right" style="display: flex; gap: 8px; align-items: center;">
+                <div id="game-coin-balance" class="game-coin-balance" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; gap: 6px; cursor: pointer;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    <span id="game-coin-text">0</span>
+                    <div style="background: #22c55e; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: white;">+</div>
+                </div>
+                <button type="button" id="path-hint-btn" class="action-btn" style="background: rgba(255,255,255,0.1); border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; border: none; color: white; cursor: pointer;">
+                    <span class="path-hint-glyph" style="font-weight: bold; font-size: 1.1rem;">#</span>
+                </button>
+                <button id="restart-btn" class="action-btn" style="background: rgba(255,255,255,0.1); border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        <div id="game-container">
+            <canvas id="gameCanvas"></canvas>
+            
+            <button id="undo-btn" class="fab fab-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/>
+                </svg>
+            </button>
+            
+            <button id="hint-btn" class="fab fab-right">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                <div id="hint-badge" class="hint-badge">3</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="screen hidden">
+        <div class="settings-scroll-content">
+            <div class="settings-group">
+                <div class="settings-item">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+                    <span class="settings-label" data-i18n="set_lang">Language</span>
+                    <span class="settings-value" id="language-value">English &gt;</span>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12" y2="18"/><line x1="2" y1="6" x2="2" y2="18"/><line x1="22" y1="6" x2="22" y2="18"/></svg></span>
+                    <span class="settings-label" data-i18n="set_vib">Vibrations</span>
+                    <label class="toggle-switch"><input type="checkbox" id="vibrations-toggle" checked><span class="slider"></span></label>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
+                    <span class="settings-label" data-i18n="set_sounds">Sounds</span>
+                    <label class="toggle-switch"><input type="checkbox" id="sounds-toggle" checked><span class="slider"></span></label>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                    <span class="settings-label" data-i18n="set_dark">Dark mode</span>
+                    <label class="toggle-switch"><input type="checkbox" id="dark-mode-toggle" checked><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-item settings-user-row">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    <span class="settings-label" id="settings-user-name">—</span>
+                </div>
+                <div class="settings-item" id="settings-sign-out-row" style="cursor: pointer;">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+                    <span class="settings-label" data-i18n="btn_sign_out">Sign out</span>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-item">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span>
+                    <span class="settings-label" data-i18n="set_ads">Remove Ads</span>
+                    <label class="toggle-switch"><input type="checkbox"><span class="slider"></span></label>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
+                    <span class="settings-label" data-i18n="set_restore">Restore purchases</span>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-item">
+                    <span class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                    <span class="settings-label" data-i18n="set_rate">Rate us</span>
+                </div>
+                <div class="settings-item">
+                    <span class="settings-icon">🖊️</span>
+                    <span class="settings-label" data-i18n="set_write">Write us</span>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-item">
+                    <span class="settings-icon">📄</span>
+                    <span class="settings-label" data-i18n="set_privacy">Privacy</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2 id="modal-title">Game Over</h2>
+            <button id="modal-btn" class="modal-btn">Try Again</button>
+        </div>
+    </div>
+
+    <div id="avatar-crop-modal" class="modal-overlay hidden">
+        <div class="modal-box avatar-crop-box">
+            <h2 data-i18n="profile_crop_photo">Adjust photo</h2>
+            <p class="avatar-crop-hint" data-i18n="profile_crop_hint">Drag to move · slider to zoom</p>
+            <div class="avatar-crop-stage" id="avatar-crop-stage">
+                <img id="avatar-crop-img" alt="" draggable="false">
+                <div class="avatar-crop-ring" aria-hidden="true"></div>
+            </div>
+            <input type="range" id="avatar-crop-zoom" class="avatar-crop-zoom" min="100" max="280" value="100">
+            <div class="name-edit-actions">
+                <button type="button" id="avatar-crop-cancel" class="name-edit-cancel" data-i18n="btn_cancel">Cancel</button>
+                <button type="button" id="avatar-crop-save" class="name-edit-save" data-i18n="btn_save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="name-edit-modal" class="modal-overlay hidden">
+        <div class="modal-box name-edit-box">
+            <h2 data-i18n="profile_change_name">Change name</h2>
+            <input type="text" id="name-edit-input" class="name-edit-input" maxlength="28" autocomplete="nickname" spellcheck="false">
+            <div class="name-edit-actions">
+                <button type="button" id="name-edit-cancel" class="name-edit-cancel" data-i18n="btn_cancel">Cancel</button>
+                <button type="button" id="name-edit-save" class="name-edit-save" data-i18n="btn_save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="language-modal" class="modal-overlay hidden">
+        <div class="modal-box language-picker-box">
+            <h2 data-i18n="set_lang">Language</h2>
+            <div id="language-list" class="language-list"></div>
+            <button type="button" id="language-close-btn" class="modal-btn" style="margin-top: 16px;">OK</button>
+        </div>
+    </div>
+
+    <div id="reward-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2 data-i18n="reward_title">Reward Unlocked!</h2>
+            <div class="reward-icon">🏆</div>
+            <p>You completed 10 Nightmare levels!</p>
+            <button id="reward-ok-btn">Awesome!</button>
+        </div>
+    </div>
+
+    <div id="streak-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2 data-i18n="weekly_streak">Weekly Streak</h2>
+            <div id="streak-summary" style="font-size: 0.95rem; color: #c7d2fe; margin-bottom: 12px;">Current streak: 0 days</div>
+            <div id="weekly-streak-container" style="display: flex; gap: 12px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin: 20px 0; justify-content: center;">
+                <!-- Content injected by JS -->
+            </div>
+            <button id="streak-ok-btn" class="modal-btn">Got it</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-auth.js"></script>
+    <script src="audio.js"></script>
+    <script src="app.js?v=21"></script>
+</body>
+</html>
