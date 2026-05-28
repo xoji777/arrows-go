@@ -7,12 +7,14 @@
 
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: #1c1d27;
-    /* Dark theme background */
+    background: linear-gradient(135deg, rgba(15, 15, 25, 0.95) 0%, rgba(30, 20, 40, 0.92) 100%);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     color: white;
     overflow: hidden;
     user-select: none;
     touch-action: none;
+    -webkit-font-smoothing: antialiased;
 }
 
 .screen {
@@ -25,6 +27,9 @@ body {
     flex-direction: column;
     transition: opacity 0.3s ease;
     z-index: 1;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.1);
 }
 
 #game-screen {
@@ -36,6 +41,11 @@ body {
     user-select: none;
     -webkit-user-drag: none;
     -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-text-size-adjust: 100%;
+    background: rgba(20, 20, 30, 0.85);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
 }
 
 .hidden {
@@ -51,8 +61,9 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 15, 20, 0.9);
-    backdrop-filter: blur(8px);
+    background: rgba(15, 15, 20, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     z-index: 100;
     display: flex;
     justify-content: center;
@@ -60,12 +71,14 @@ body {
 }
 
 .modal-box {
-    background: #2b2d3d;
+    background: rgba(43, 45, 61, 0.85);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     padding: 30px;
     border-radius: 20px;
     text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .modal-box h2 {
@@ -1472,4 +1485,50 @@ body.light-mode #game-level-text {
 body.light-mode #game-container {
     background: transparent !important;
     box-shadow: none !important;
+}
+
+/* iOS Glassmorphism & Transparency Optimization */
+@supports (-webkit-backdrop-filter: blur(1px)) {
+    body {
+        background: linear-gradient(135deg, rgba(15, 15, 25, 0.92) 0%, rgba(30, 20, 40, 0.88) 100%);
+    }
+    
+    .modal-box {
+        background: rgba(43, 45, 61, 0.8);
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .screen {
+        background: rgba(0, 0, 0, 0.08);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+    
+    #gameCanvas {
+        background: rgba(20, 20, 30, 0.8);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+    }
+    
+    .menu-card-row {
+        background: rgba(255, 255, 255, 0.05);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .action-btn {
+        background: rgba(255, 255, 255, 0.08) !important;
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+}
+
+@media (max-width: 600px) {
+    .modal-box {
+        max-width: 90vw;
+    }
 }

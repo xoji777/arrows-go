@@ -1169,7 +1169,23 @@ function initFirebaseAuth() {
     ArrowsFirebase.onAuthStateChanged(onFirebaseAuthStateChanged);
 }
 
+function logDeviceInfo() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isAndroid = /Android/.test(ua);
+    const hasPointerEvents = 'PointerEvent' in window;
+    const hasBackdropFilter = CSS && CSS.supports && CSS.supports('-webkit-backdrop-filter', 'blur(1px)');
+    
+    console.log('🎮 Arrows Game Device Info:');
+    console.log(`Platform: ${isIOS ? 'iOS' : isAndroid ? 'Android' : 'Web'}`);
+    console.log(`Touch Support: ${('ontouchstart' in window) ? '✅' : '❌'}`);
+    console.log(`Pointer Events: ${hasPointerEvents ? '✅' : '❌'}`);
+    console.log(`Backdrop Filter (Glassmorphism): ${hasBackdropFilter ? '✅' : '❌'}`);
+    console.log(`User Agent: ${ua}`);
+}
+
 function init() {
+    logDeviceInfo();
     applyLanguage();
     if (localStorage.getItem(GUEST_MODE_KEY) === '1') {
         loginAsGuest();
@@ -2788,7 +2804,11 @@ if (canvas) {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
 
         if (e.pointerType === 'touch') {
-            canvas.setPointerCapture(e.pointerId);
+            try {
+                if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+            } catch(err) {
+                // iOS Safari may not support setPointerCapture
+            }
             pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (pinchPointers.size === 2) {
                 const points = Array.from(pinchPointers.values());
@@ -2879,6 +2899,91 @@ if (canvas) {
                 });
             }
         }
+    });
+
+    // iOS Safari fallback: native touch events for better compatibility
+    canvas.addEventListener('touchstart', (e) => {
+        if (!isGameRunning || !canvas) return;
+        const touches = e.touches;
+        
+        if (touches.length === 2) {
+            e.preventDefault();
+            const t1 = touches[0];
+            const t2 = touches[1];
+            pinchStartDistance = getTouchDistance(
+                { x: t1.clientX, y: t1.clientY },
+                { x: t2.clientX, y: t2.clientY }
+            );
+            pinchStartZoom = zoomScale;
+            console.log(`📌 Pinch zoom started - distance: ${pinchStartDistance.toFixed(0)}, zoom: ${zoomScale.toFixed(2)}`);
+            return;
+        }
+
+        if (touches.length === 1) {
+            const touch = touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            const clickedPiece = findPieceAtPixel(x, y);
+            
+            if (!clickedPiece && canUseZoomPan()) {
+                e.preventDefault();
+                dragPointerId = 'touch-' + touch.identifier;
+                dragStart = { x: touch.clientX, y: touch.clientY, ox: offsetX, oy: offsetY };
+                console.log(`👆 Pan started at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+                return;
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if (!isGameRunning || !canvas) return;
+        const touches = e.touches;
+
+        if (touches.length === 2 && pinchStartDistance > 0) {
+            e.preventDefault();
+            const t1 = touches[0];
+            const t2 = touches[1];
+            const newDist = getTouchDistance(
+                { x: t1.clientX, y: t1.clientY },
+                { x: t2.clientX, y: t2.clientY }
+            );
+            const rect = canvas.getBoundingClientRect();
+            const centerX = (t1.clientX + t2.clientX) / 2 - rect.left;
+            const centerY = (t1.clientY + t2.clientY) / 2 - rect.top;
+            if (canUseZoomPan()) {
+                applyZoomAt(centerX, centerY, pinchStartZoom * (newDist / pinchStartDistance));
+            }
+            return;
+        }
+
+        if (touches.length === 1 && dragStart) {
+            const touch = touches[0];
+            if (dragPointerId === 'touch-' + touch.identifier) {
+                e.preventDefault();
+                const dx = touch.clientX - dragStart.x;
+                const dy = touch.clientY - dragStart.y;
+                const next = clampPanOffset(dragStart.ox + dx, dragStart.oy + dy);
+                offsetX = next.x;
+                offsetY = next.y;
+                updatePixelPaths();
+                draw();
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+        if (!isGameRunning) return;
+        if (e.touches.length < 2) pinchStartDistance = 0;
+        dragPointerId = null;
+        dragStart = null;
+    });
+
+    canvas.addEventListener('touchcancel', (e) => {
+        if (!isGameRunning) return;
+        pinchStartDistance = 0;
+        dragPointerId = null;
+        dragStart = null;
     });
 }
 
