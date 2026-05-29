@@ -2628,8 +2628,8 @@ function startEffectsLoop() {
 }
 
 function addFloatingText(text, c, r, color = '#ffffff', size = 24) {
-    let x = c * cellSize + cellSize / 2 + panOffset.x;
-    let y = r * cellSize + cellSize / 2 + panOffset.y;
+    let x = c * cellSize + cellSize / 2 + offsetX;
+    let y = r * cellSize + cellSize / 2 + offsetY;
     floatingTexts.push({ text, x, y, color, size, life: 60, maxLife: 60 });
     startEffectsLoop();
 }
@@ -2661,8 +2661,8 @@ function animateEscape(piece, onComplete) {
         piece.offset += speed;
         
         // Track History
-        let cx = piece.c * cellSize + cellSize / 2 + panOffset.x;
-        let cy = piece.r * cellSize + cellSize / 2 + panOffset.y;
+        let cx = piece.c * cellSize + cellSize / 2 + offsetX;
+        let cy = piece.r * cellSize + cellSize / 2 + offsetY;
         let px = cx, py = cy;
         if (piece.dir === 0) py -= piece.offset;
         else if (piece.dir === 1) px += piece.offset;
