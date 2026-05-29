@@ -536,6 +536,7 @@ let pinchStartDistance = 0;
 let pinchStartZoom = 1;
 let dragPointerId = null;
 let dragStart = null;
+let isPanning = false;
 
 const DIR = { UP: { dx: 0, dy: -1 }, DOWN: { dx: 0, dy: 1 }, LEFT: { dx: -1, dy: 0 }, RIGHT: { dx: 1, dy: 0 } };
 const DIRS = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
@@ -556,10 +557,10 @@ const pathHintBtn = document.getElementById('path-hint-btn');
 
 const DIFFICULTIES = [
     { name: 'EASY', key: 'menu_easy', cssClass: 'easy', color: '#22c55e', tier: 1, minPieces: 35, maxPieces: 50, minPath: 3, maxPath: 6 },
-    { name: 'HARD', key: 'menu_hard', cssClass: 'hard', color: '#f59e0b', tier: 2, minPieces: 75, maxPieces: 105, minPath: 4, maxPath: 8 },
-    { name: 'SUPER HARD', key: 'menu_super_hard', cssClass: 'super', color: '#f97316', tier: 3, minPieces: 105, maxPieces: 135, minPath: 5, maxPath: 10 },
-    { name: 'EXTRA HARD', key: 'menu_extra_hard', cssClass: 'extra', color: '#ef4444', tier: 4, minPieces: 130, maxPieces: 165, minPath: 6, maxPath: 12 },
-    { name: 'NIGHTMARE', key: 'menu_nightmare', cssClass: 'nightmare', color: '#b91c1c', tier: 5, minPieces: 155, maxPieces: 190, minPath: 8, maxPath: 16 }
+    { name: 'HARD', key: 'menu_hard', cssClass: 'hard', color: '#f59e0b', tier: 2, minPieces: 100, maxPieces: 150, minPath: 4, maxPath: 8 },
+    { name: 'SUPER HARD', key: 'menu_super_hard', cssClass: 'super', color: '#f97316', tier: 3, minPieces: 150, maxPieces: 220, minPath: 5, maxPath: 10 },
+    { name: 'EXTRA HARD', key: 'menu_extra_hard', cssClass: 'extra', color: '#ef4444', tier: 4, minPieces: 220, maxPieces: 300, minPath: 6, maxPath: 12 },
+    { name: 'NIGHTMARE', key: 'menu_nightmare', cssClass: 'nightmare', color: '#b91c1c', tier: 5, minPieces: 300, maxPieces: 450, minPath: 8, maxPath: 16 }
 ];
 
 let nextPlayDifficulty = null;
@@ -2742,54 +2743,7 @@ if (canvas) {
         draw();
     }
 
-    canvas.addEventListener('pointermove', (e) => {
-        if (!isGameRunning) return;
-        if (e.pointerType === 'touch' && pinchPointers.has(e.pointerId)) {
-            e.preventDefault();
-            pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-            if (pinchPointers.size === 2) updatePinchZoom();
-            return;
-        }
-        if (dragStart && dragPointerId === e.pointerId) {
-            e.preventDefault();
-            updateDrag(e);
-            return;
-        }
-        const style = getHintStyle(window.currentDifficulty);
-        if (style.mode !== 'hover') return;
-        const rect = canvas.getBoundingClientRect();
-        const next = findPieceAtPixel(e.clientX - rect.left, e.clientY - rect.top);
-        if (next !== hintedPiece) {
-            hintedPiece = next;
-            draw();
-        }
-    });
-    canvas.addEventListener('pointerleave', () => {
-        if (hintedPiece) {
-            hintedPiece = null;
-            if (isGameRunning) draw();
-        }
-    });
-    canvas.addEventListener('pointerup', (e) => {
-        if (e.pointerType === 'touch') {
-            pinchPointers.delete(e.pointerId);
-            if (pinchPointers.size < 2) pinchStartDistance = 0;
-        }
-        if (dragPointerId === e.pointerId) {
-            dragPointerId = null;
-            dragStart = null;
-        }
-    });
-    canvas.addEventListener('pointercancel', (e) => {
-        if (e.pointerType === 'touch') {
-            pinchPointers.delete(e.pointerId);
-            if (pinchPointers.size < 2) pinchStartDistance = 0;
-        }
-        if (dragPointerId === e.pointerId) {
-            dragPointerId = null;
-            dragStart = null;
-        }
-    });
+    // OLD EVENTS REMOVED
     canvas.addEventListener('wheel', (e) => {
         if (!isGameRunning || !canUseZoomPan()) return;
         e.preventDefault();
@@ -2799,16 +2753,83 @@ if (canvas) {
         const delta = e.deltaY > 0 ? -0.08 : 0.08;
         applyZoomAt(centerX, centerY, zoomScale + delta);
     }, { passive: false });
+    // OLD POINTERDOWN REMOVED
+
+    // iOS Safari fallback removed
+    function triggerPieceEscape(clickedPiece) {
+        if (clickedPiece.isLocked) {
+            if(typeof playSound !== 'undefined') playSound('error');
+            vibrate('Medium');
+            animateBump(clickedPiece, () => { draw(); });
+            return;
+        }
+
+        let blockers = getBlockers(clickedPiece);
+        if (blockers.length === 0) {
+            // Save state for undo
+            const clone = { 
+                ...clickedPiece, 
+                gridPaths: JSON.parse(JSON.stringify(clickedPiece.gridPaths)), 
+                dirVec: {...clickedPiece.dirVec} 
+            };
+            clone.offset = 0;
+            clone.state = 'IDLE';
+            moveHistory.push(clone);
+            
+            if(typeof playSound !== 'undefined') playSound('tap');
+            vibrate('Light');
+
+            const idx = pieces.findIndex(p => p.id === clickedPiece.id);
+            pieces.splice(idx, 1);
+            animatingPieces.push(clickedPiece);
+
+            if (clickedPiece.isKey) {
+                if(typeof playSound !== 'undefined') playSound('win');
+                pieces.forEach(p => {
+                    if (p.isLocked) p.isLocked = false;
+                });
+            }
+            
+            animateEscape(clickedPiece, () => {
+                animatingPieces = animatingPieces.filter(p => p.id !== clickedPiece.id);
+                if (pieces.length === 0 && animatingPieces.length === 0) {
+                    levelComplete();
+                }
+            });
+        } else {
+            if(typeof playSound !== 'undefined') playSound('error');
+            vibrate('Heavy');
+
+            clickedPiece.state = 'ERROR';
+            blockers.forEach(b => b.state = 'ERROR');
+            const lostLife = !clickedPiece.errorMarked;
+            clickedPiece.errorMarked = true;
+            animateBump(clickedPiece, () => {
+                clickedPiece.state = 'IDLE';
+                blockers.forEach(b => b.state = 'IDLE');
+                draw();
+                if (lostLife) {
+                    lives--;
+                    updateHearts();
+                    if (lives <= 0 && overlay.classList.contains('hidden')) {
+                        modalTitle.innerText = "Game Over";
+                        modalBtn.innerText = "Try Again";
+                        overlay.classList.remove('hidden');
+                    }
+                }
+            });
+        }
+    }
+
     canvas.addEventListener('pointerdown', (e) => {
         if (!isGameRunning) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
+        
+        try {
+            if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+        } catch(err) {}
 
         if (e.pointerType === 'touch') {
-            try {
-                if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
-            } catch(err) {
-                // iOS Safari may not support setPointerCapture
-            }
             pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (pinchPointers.size === 2) {
                 const points = Array.from(pinchPointers.values());
@@ -2816,174 +2837,108 @@ if (canvas) {
                 pinchStartZoom = zoomScale;
                 dragPointerId = null;
                 dragStart = null;
+                isPanning = false;
                 return;
             }
         }
         if (pinchPointers.size > 1) return;
 
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const clickedPiece = findPieceAtPixel(x, y);
-        // Allow panning after zoom or when difficulty allows it even if touching a piece
-        const zoomedEnough = Math.abs(zoomScale - 1) > 0.02;
-        if (canUseZoomPan() && (zoomedEnough || !clickedPiece)) {
-            e.preventDefault();
-            dragPointerId = e.pointerId;
-            dragStart = { x: e.clientX, y: e.clientY, ox: offsetX, oy: offsetY };
-            return;
-        }
-        
-        if (clickedPiece) {
-            if (clickedPiece.isLocked) {
-                if(typeof playSound !== 'undefined') playSound('error');
-                vibrate('Medium');
-                animateBump(clickedPiece, () => { draw(); });
-                return;
-            }
-
-            let blockers = getBlockers(clickedPiece);
-            if (blockers.length === 0) {
-                // Save state for undo
-                const clone = { 
-                    ...clickedPiece, 
-                    gridPaths: JSON.parse(JSON.stringify(clickedPiece.gridPaths)), 
-                    dirVec: {...clickedPiece.dirVec} 
-                };
-                clone.offset = 0;
-                clone.state = 'IDLE';
-                moveHistory.push(clone);
-                
-                if(typeof playSound !== 'undefined') playSound('tap');
-                vibrate('Light');
-
-                const idx = pieces.findIndex(p => p.id === clickedPiece.id);
-                pieces.splice(idx, 1);
-                animatingPieces.push(clickedPiece);
-
-                if (clickedPiece.isKey) {
-                    if(typeof playSound !== 'undefined') playSound('win');
-                    pieces.forEach(p => {
-                        if (p.isLocked) p.isLocked = false;
-                    });
-                }
-                
-                animateEscape(clickedPiece, () => {
-                    animatingPieces = animatingPieces.filter(p => p.id !== clickedPiece.id);
-                    if (pieces.length === 0 && animatingPieces.length === 0) {
-                        levelComplete();
-                    }
-                });
-            } else {
-                if(typeof playSound !== 'undefined') playSound('error');
-                vibrate('Heavy');
-
-                clickedPiece.state = 'ERROR';
-                blockers.forEach(b => b.state = 'ERROR');
-                const lostLife = !clickedPiece.errorMarked;
-                clickedPiece.errorMarked = true;
-                animateBump(clickedPiece, () => {
-                    clickedPiece.state = 'IDLE';
-                    blockers.forEach(b => b.state = 'IDLE');
-                    draw();
-                    if (lostLife) {
-                        lives--;
-                        updateHearts();
-                        if (lives <= 0 && overlay.classList.contains('hidden')) {
-                            modalTitle.innerText = "Game Over";
-                            modalBtn.innerText = "Try Again";
-                            overlay.classList.remove('hidden');
-                        }
-                    }
-                });
-            }
-        }
+        dragPointerId = e.pointerId;
+        dragStart = { x: e.clientX, y: e.clientY, ox: offsetX, oy: offsetY };
+        isPanning = false;
     });
 
-    // iOS Safari fallback: native touch events for better compatibility
-    canvas.addEventListener('touchstart', (e) => {
-        if (!isGameRunning || !canvas) return;
-        const touches = e.touches;
+    canvas.addEventListener('pointermove', (e) => {
+        if (!isGameRunning) return;
         
-        if (touches.length === 2) {
+        if (e.pointerType === 'touch' && pinchPointers.has(e.pointerId)) {
             e.preventDefault();
-            const t1 = touches[0];
-            const t2 = touches[1];
-            pinchStartDistance = getTouchDistance(
-                { x: t1.clientX, y: t1.clientY },
-                { x: t2.clientX, y: t2.clientY }
-            );
-            pinchStartZoom = zoomScale;
-            console.log(`📌 Pinch zoom started - distance: ${pinchStartDistance.toFixed(0)}, zoom: ${zoomScale.toFixed(2)}`);
-            return;
-        }
-
-        if (touches.length === 1) {
-            const touch = touches[0];
-            const rect = canvas.getBoundingClientRect();
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
-            const clickedPiece = findPieceAtPixel(x, y);
-            
-            if (!clickedPiece && canUseZoomPan()) {
-                e.preventDefault();
-                dragPointerId = 'touch-' + touch.identifier;
-                dragStart = { x: touch.clientX, y: touch.clientY, ox: offsetX, oy: offsetY };
-                console.log(`👆 Pan started at (${x.toFixed(0)}, ${y.toFixed(0)})`);
-                return;
-            }
-        }
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', (e) => {
-        if (!isGameRunning || !canvas) return;
-        const touches = e.touches;
-
-        if (touches.length === 2 && pinchStartDistance > 0) {
-            e.preventDefault();
-            const t1 = touches[0];
-            const t2 = touches[1];
-            const newDist = getTouchDistance(
-                { x: t1.clientX, y: t1.clientY },
-                { x: t2.clientX, y: t2.clientY }
-            );
-            const rect = canvas.getBoundingClientRect();
-            const centerX = (t1.clientX + t2.clientX) / 2 - rect.left;
-            const centerY = (t1.clientY + t2.clientY) / 2 - rect.top;
-            if (canUseZoomPan()) {
-                applyZoomAt(centerX, centerY, pinchStartZoom * (newDist / pinchStartDistance));
+            pinchPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pinchPointers.size === 2 && pinchStartDistance > 0) {
+                const points = Array.from(pinchPointers.values());
+                const newDist = getTouchDistance(points[0], points[1]);
+                const rect = canvas.getBoundingClientRect();
+                const centerX = (points[0].x + points[1].x) / 2 - rect.left;
+                const centerY = (points[0].y + points[1].y) / 2 - rect.top;
+                if (canUseZoomPan()) {
+                    applyZoomAt(centerX, centerY, pinchStartZoom * (newDist / pinchStartDistance));
+                }
             }
             return;
         }
 
-        if (touches.length === 1 && dragStart) {
-            const touch = touches[0];
-            if (dragPointerId === 'touch-' + touch.identifier) {
+        if (dragStart && dragPointerId === e.pointerId) {
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            if (!isPanning && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+                isPanning = true;
+            }
+            if (isPanning && canUseZoomPan()) {
                 e.preventDefault();
-                const dx = touch.clientX - dragStart.x;
-                const dy = touch.clientY - dragStart.y;
                 const next = clampPanOffset(dragStart.ox + dx, dragStart.oy + dy);
                 offsetX = next.x;
                 offsetY = next.y;
                 updatePixelPaths();
                 draw();
             }
+            return;
         }
-    }, { passive: false });
 
-    canvas.addEventListener('touchend', (e) => {
-        if (!isGameRunning) return;
-        if (e.touches.length < 2) pinchStartDistance = 0;
-        dragPointerId = null;
-        dragStart = null;
+        if (e.pointerType === 'mouse') {
+            const style = getHintStyle(window.currentDifficulty);
+            if (style.mode !== 'hover') return;
+            const rect = canvas.getBoundingClientRect();
+            const next = findPieceAtPixel(e.clientX - rect.left, e.clientY - rect.top);
+            if (next !== hintedPiece) {
+                hintedPiece = next;
+                draw();
+            }
+        }
     });
 
-    canvas.addEventListener('touchcancel', (e) => {
-        if (!isGameRunning) return;
-        pinchStartDistance = 0;
-        dragPointerId = null;
-        dragStart = null;
+    canvas.addEventListener('pointerup', (e) => {
+        if (e.pointerType === 'touch') {
+            pinchPointers.delete(e.pointerId);
+            if (pinchPointers.size < 2) pinchStartDistance = 0;
+        }
+        
+        if (dragPointerId === e.pointerId) {
+            const wasPanning = isPanning;
+            const startPoint = dragStart;
+            dragPointerId = null;
+            dragStart = null;
+            isPanning = false;
+
+            if (!wasPanning && startPoint) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const clickedPiece = findPieceAtPixel(x, y);
+
+                if (clickedPiece) {
+                    triggerPieceEscape(clickedPiece);
+                }
+            }
+        }
+    });
+
+    canvas.addEventListener('pointerleave', () => {
+        if (hintedPiece) {
+            hintedPiece = null;
+            if (isGameRunning) draw();
+        }
+    });
+
+    canvas.addEventListener('pointercancel', (e) => {
+        if (e.pointerType === 'touch') {
+            pinchPointers.delete(e.pointerId);
+            if (pinchPointers.size < 2) pinchStartDistance = 0;
+        }
+        if (dragPointerId === e.pointerId) {
+            dragPointerId = null;
+            dragStart = null;
+            isPanning = false;
+        }
     });
 }
 
