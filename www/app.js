@@ -553,6 +553,14 @@ const GUEST_MODE_KEY = 'arrowsGuestMode';
 let hintedPiece = null;
 let pathHintsVisible = false;
 let isTrapsMode = false;
+
+// Combo & Effects State
+let currentCombo = 0;
+let comboTimer = 0;
+const MAX_COMBO_TIMER = 180;
+let floatingTexts = [];
+let confettiParticles = [];
+let screenShakeFrames = 0;
 const pathHintBtn = document.getElementById('path-hint-btn');
 
 const DIFFICULTIES = [
@@ -648,6 +656,10 @@ function updateUserStreak() {
 function vibrate(style = 'Light') {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
         window.Capacitor.Plugins.Haptics.impact({ style });
+    } else if (navigator.vibrate) {
+        if (style === 'Heavy') navigator.vibrate(40);
+        else if (style === 'Medium') navigator.vibrate(20);
+        else navigator.vibrate(10);
     }
 }
 
@@ -1331,7 +1343,8 @@ if (hintBtn) {
             clone.state = 'IDLE';
             moveHistory.push(clone);
             
-            if(typeof playSound !== 'undefined') playSound('tap');
+            let pitch = 1 + Math.min(currentCombo * 0.1, 1.0);
+            if(typeof playSound !== 'undefined') playSound('tap', pitch);
             vibrate('Light');
 
             const idx = pieces.findIndex(p => p.id === hintPiece.id);
@@ -2406,7 +2419,7 @@ function findPieceAtPixel(x, y) {
             const projX = p1.x + t * (p2.x - p1.x);
             const projY = p1.y + t * (p2.y - p1.y);
             const dist = Math.hypot(x - projX, y - projY);
-            if (dist < Math.max(cellSize * 0.8, 20) && dist < minDist) {
+            if (dist < cellSize * 0.6 && dist < minDist) {
                 minDist = dist;
                 found = p;
             }
@@ -2522,13 +2535,168 @@ function draw() {
 
         drawArrowHead(ctx, headPt.x, headPt.y, p.dir, headSize, color, p.isKey, p.isLocked);
     });
+
+    // Draw Trails
+    allPieces.forEach(p => {
+        if (p.history && p.history.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(p.history[0].x, p.history[0].y);
+            for (let i = 1; i < p.history.length; i++) {
+                ctx.lineTo(p.history[i].x, p.history[i].y);
+            }
+            ctx.strokeStyle = getPieceColor(p);
+            ctx.lineWidth = arrowLineWidth * 0.8;
+            ctx.globalAlpha = 0.5;
+            if (userData.equippedSkin === 'neon') ctx.shadowBlur = 10;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+        }
+    });
+
+    // Draw Floating Texts
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    floatingTexts.forEach(ft => {
+        ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+        ctx.font = `bold ${ft.size}px sans-serif`;
+        ctx.fillStyle = ft.color;
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(ft.text, ft.x, ft.y);
+        ctx.fillText(ft.text, ft.x, ft.y);
+    });
+    ctx.globalAlpha = 1;
+
+    // Draw Confetti
+    confettiParticles.forEach(cp => {
+        ctx.globalAlpha = Math.max(0, cp.life / cp.maxLife);
+        ctx.fillStyle = cp.color;
+        ctx.save();
+        ctx.translate(cp.x, cp.y);
+        ctx.rotate(cp.angle);
+        ctx.fillRect(-cp.size/2, -cp.size/2, cp.size, cp.size);
+        ctx.restore();
+    });
+    ctx.globalAlpha = 1;
+}
+
+let effectsLoopRunning = false;
+function startEffectsLoop() {
+    if (effectsLoopRunning) return;
+    effectsLoopRunning = true;
+    function loop() {
+        if (!isGameRunning) {
+            effectsLoopRunning = false;
+            return;
+        }
+        let needsDraw = false;
+        
+        if (comboTimer > 0) {
+            comboTimer--;
+            if (comboTimer === 0) currentCombo = 0;
+        }
+        
+        if (floatingTexts.length > 0) {
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                floatingTexts[i].life--;
+                floatingTexts[i].y -= 0.8;
+                if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+            }
+            needsDraw = true;
+        }
+        
+        if (confettiParticles.length > 0) {
+            for (let i = confettiParticles.length - 1; i >= 0; i--) {
+                let p = confettiParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.3; // gravity
+                p.angle += p.va;
+                p.life--;
+                if (p.life <= 0) confettiParticles.splice(i, 1);
+            }
+            needsDraw = true;
+        }
+        
+        if (screenShakeFrames > 0) {
+            screenShakeFrames--;
+            if (screenShakeFrames === 0) {
+                gameScreen.classList.remove('shake-active');
+            }
+        }
+        
+        if (needsDraw) {
+            draw();
+            requestAnimationFrame(loop);
+        } else {
+            effectsLoopRunning = false;
+        }
+    }
+    requestAnimationFrame(loop);
+}
+
+function addFloatingText(text, c, r, color = '#ffffff', size = 24) {
+    let x = c * cellSize + cellSize / 2 + panOffset.x;
+    let y = r * cellSize + cellSize / 2 + panOffset.y;
+    floatingTexts.push({ text, x, y, color, size, life: 60, maxLife: 60 });
+    startEffectsLoop();
+}
+
+function spawnConfetti(x, y) {
+    const colors = ['#facc15', '#ef4444', '#3b82f6', '#22c55e', '#a855f7'];
+    for(let i=0; i<50; i++) {
+        confettiParticles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 15,
+            vy: (Math.random() - 1) * 15,
+            va: (Math.random() - 0.5) * 0.2,
+            angle: Math.random() * Math.PI * 2,
+            size: Math.random() * 8 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            life: 100 + Math.random() * 50,
+            maxLife: 150
+        });
+    }
+    startEffectsLoop();
 }
 
 function animateEscape(piece, onComplete) {
     let speed = cellSize * 0.5;
+    piece.history = []; // Initialize trail history
+    
+    // Combo Logic
+    currentCombo++;
+    comboTimer = MAX_COMBO_TIMER;
+    if (currentCombo > 1) {
+        let texts = ["Good!", "Great!", "Awesome!", "Unstoppable!", "Godlike!"];
+        let txt = texts[Math.min(currentCombo - 2, texts.length - 1)];
+        if (currentCombo > 2) addFloatingText(`${currentCombo}x Combo!`, piece.c, piece.r - 0.5, '#facc15', 20);
+        addFloatingText(txt, piece.c, piece.r, '#38bdf8', 24);
+        
+        // Add bonus coin for high combos
+        if (currentCombo > 3) {
+            gameCoins++;
+            updateGameCoinDisplay();
+        }
+    }
+    
     function step() {
         if(!isGameRunning) return;
         piece.offset += speed;
+        
+        // Track History
+        let cx = piece.c * cellSize + cellSize / 2 + panOffset.x;
+        let cy = piece.r * cellSize + cellSize / 2 + panOffset.y;
+        let px = cx, py = cy;
+        if (piece.dir === 0) py -= piece.offset;
+        else if (piece.dir === 1) px += piece.offset;
+        else if (piece.dir === 2) py += piece.offset;
+        else if (piece.dir === 3) px -= piece.offset;
+        
+        piece.history.push({x: px, y: py});
+        if (piece.history.length > 15) piece.history.shift();
+        
         draw();
         
         if (piece.offset > piece.totalLength + Math.max(canvas.width, canvas.height)) {
@@ -2541,6 +2709,13 @@ function animateEscape(piece, onComplete) {
 }
 
 function animateBump(piece, onComplete) {
+    // Reset Combo and trigger Shake
+    currentCombo = 0;
+    screenShakeFrames = 15;
+    gameScreen.classList.add('shake-active');
+    addFloatingText('Blocked!', piece.c, piece.r, '#ef4444', 20);
+    startEffectsLoop();
+
     let forward = true;
     let dist = getDistanceToBlocker(piece);
     let maxBump = dist ? Math.max(cellSize * 0.15, dist * cellSize - cellSize * 0.5) : (cellSize * 0.15); 
@@ -2573,17 +2748,19 @@ function animateBump(piece, onComplete) {
 function levelComplete() {
     if(typeof playSound !== 'undefined') playSound('win');
     vibrate('Medium');
+    spawnConfetti(canvas.width / 2, canvas.height / 2);
 
-    const today = new Date();
-    const todayStr = getLocalDateStr(today);
-    if (!userData.completedDays) userData.completedDays = [];
-    if (!userData.completedDays.includes(todayStr)) {
-        userData.completedDays.push(todayStr);
-    }
-    updateUserStreak();
+    setTimeout(() => {
+        const today = new Date();
+        const todayStr = getLocalDateStr(today);
+        if (!userData.completedDays) userData.completedDays = [];
+        if (!userData.completedDays.includes(todayStr)) {
+            userData.completedDays.push(todayStr);
+        }
+        updateUserStreak();
 
-    if (isDailyChallengeMode) {
-        userData.lastDailyChallenge = todayStr;
+        if (isDailyChallengeMode) {
+            userData.lastDailyChallenge = todayStr;
         userData.coins += 500;
 
         let currentMonth = today.getMonth();
@@ -2625,12 +2802,13 @@ function levelComplete() {
     
     saveData();
     
-    if (showReward) {
-        rewardModal.classList.remove('hidden');
-    } else {
-        rollNextDifficulty();
-        startGameWithLevel(nextPlayDifficulty, userData.level);
-    }
+        if (showReward) {
+            rewardModal.classList.remove('hidden');
+        } else {
+            rollNextDifficulty();
+            startGameWithLevel(nextPlayDifficulty, userData.level);
+        }
+    }, 1500);
 }
 
 if (streakBtn) {
@@ -2679,7 +2857,7 @@ if (canvas) {
     }
 
     function canUseZoomPan() {
-        return window.currentDifficulty && window.currentDifficulty.tier > 1;
+        return true;
     }
 
     function applyZoomAt(centerX, centerY, newZoom) {
@@ -2777,7 +2955,8 @@ if (canvas) {
             clone.state = 'IDLE';
             moveHistory.push(clone);
             
-            if(typeof playSound !== 'undefined') playSound('tap');
+            let pitch = 1 + Math.min(currentCombo * 0.1, 1.0);
+            if(typeof playSound !== 'undefined') playSound('tap', pitch);
             vibrate('Light');
 
             const idx = pieces.findIndex(p => p.id === clickedPiece.id);

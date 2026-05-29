@@ -11,7 +11,7 @@ function initAudio() {
     }
 }
 
-function playSound(type) {
+function playSound(type, pitchMultiplier = 1) {
     if (!audioCtx) return;
     
     const oscillator = audioCtx.createOscillator();
@@ -24,8 +24,8 @@ function playSound(type) {
     
     if (type === 'tap') {
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(600, now);
-        oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+        oscillator.frequency.setValueAtTime(600 * pitchMultiplier, now);
+        oscillator.frequency.exponentialRampToValueAtTime(800 * pitchMultiplier, now + 0.05);
         gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         oscillator.start(now);
@@ -58,4 +58,6 @@ function playSound(type) {
     }
 }
 
-document.addEventListener('pointerdown', initAudio, { once: true });
+['click', 'touchstart', 'pointerdown'].forEach(evt => {
+    document.addEventListener(evt, initAudio, { once: true });
+});
