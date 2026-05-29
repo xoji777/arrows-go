@@ -555,9 +555,6 @@ let pathHintsVisible = false;
 let isTrapsMode = false;
 
 // Combo & Effects State
-let currentCombo = 0;
-let comboTimer = 0;
-const MAX_COMBO_TIMER = 180;
 let floatingTexts = [];
 let confettiParticles = [];
 let screenShakeFrames = 0;
@@ -1343,8 +1340,7 @@ if (hintBtn) {
             clone.state = 'IDLE';
             moveHistory.push(clone);
             
-            let pitch = 1 + Math.min(currentCombo * 0.1, 1.0);
-            if(typeof playSound !== 'undefined') playSound('tap', pitch);
+            if(typeof playSound !== 'undefined') playSound('tap');
             vibrate('Light');
 
             const idx = pieces.findIndex(p => p.id === hintPiece.id);
@@ -2592,11 +2588,6 @@ function startEffectsLoop() {
         }
         let needsDraw = false;
         
-        if (comboTimer > 0) {
-            comboTimer--;
-            if (comboTimer === 0) currentCombo = 0;
-        }
-        
         if (floatingTexts.length > 0) {
             for (let i = floatingTexts.length - 1; i >= 0; i--) {
                 floatingTexts[i].life--;
@@ -2665,23 +2656,6 @@ function animateEscape(piece, onComplete) {
     let speed = cellSize * 0.5;
     piece.history = []; // Initialize trail history
     
-    // Combo Logic
-    currentCombo++;
-    comboTimer = MAX_COMBO_TIMER;
-    if (currentCombo > 1) {
-        let texts = ["Good!", "Great!", "Awesome!", "Unstoppable!", "Godlike!"];
-        let txt = texts[Math.min(currentCombo - 2, texts.length - 1)];
-        if (currentCombo > 2) addFloatingText(`${currentCombo}x Combo!`, piece.c, piece.r - 0.5, '#facc15', 20);
-        addFloatingText(txt, piece.c, piece.r, '#38bdf8', 24);
-        
-        // Add bonus coin for high combos
-        if (currentCombo > 3) {
-            userData.coins++;
-            saveData();
-            if (typeof updateShopUI === 'function') updateShopUI();
-        }
-    }
-    
     function step() {
         if(!isGameRunning) return;
         piece.offset += speed;
@@ -2710,8 +2684,7 @@ function animateEscape(piece, onComplete) {
 }
 
 function animateBump(piece, onComplete) {
-    // Reset Combo and trigger Shake
-    currentCombo = 0;
+    // Trigger Shake
     screenShakeFrames = 15;
     gameScreen.classList.add('shake-active');
     addFloatingText('Blocked!', piece.c, piece.r, '#ef4444', 20);
@@ -2956,8 +2929,7 @@ if (canvas) {
             clone.state = 'IDLE';
             moveHistory.push(clone);
             
-            let pitch = 1 + Math.min(currentCombo * 0.1, 1.0);
-            if(typeof playSound !== 'undefined') playSound('tap', pitch);
+            if(typeof playSound !== 'undefined') playSound('tap');
             vibrate('Light');
 
             const idx = pieces.findIndex(p => p.id === clickedPiece.id);
