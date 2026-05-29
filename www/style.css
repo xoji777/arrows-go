@@ -207,6 +207,7 @@ body {
     overflow: hidden;
     border: 2px solid rgba(99, 102, 241, 0.55);
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    clip-path: circle(50% at 50% 50%);
 }
 
 .user-avatar {
@@ -219,6 +220,7 @@ body {
     object-position: center center;
     border: none;
     display: block;
+    clip-path: circle(50% at 50% 50%);
 }
 
 .user-avatar-fallback {
@@ -885,7 +887,7 @@ body.light-mode #game-screen {
 /* FAB Buttons (Floating Action Buttons) */
 .fab {
     position: absolute;
-    bottom: 20px;
+    bottom: 60px;
     width: 60px;
     height: 60px;
     border-radius: 50%;
@@ -1108,7 +1110,7 @@ body.light-mode .fab {
     margin: 0 auto;
 }
 #shop-screen {
-    background: transparent;
+    /* Uses .screen background */
 }
 #shop-screen .collection-content {
     background: transparent;
@@ -1347,12 +1349,22 @@ input:checked + .slider:before {
 
 /* Light Mode */
 body.light-mode {
-    background-color: #f0f0f5;
-    color: #333;
+    background-color: #ffffff;
+    color: #000;
+}
+body.light-mode .screen {
+    background-color: #ffffff;
 }
 body.light-mode .menu-header h2,
 body.light-mode .settings-label {
-    color: #333;
+    color: #000;
+}
+body.light-mode #settings-sign-out-row .settings-label,
+body.light-mode .profile-dropdown-signout {
+    color: #ef4444 !important;
+}
+body.light-mode .streak-count {
+    color: #000;
 }
 body.light-mode .league-card,
 body.light-mode .settings-group,

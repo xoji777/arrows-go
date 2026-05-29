@@ -522,8 +522,8 @@ const SHOP_SKINS = [
 ];
 
 // Grid Settings
-const cols = 20;
-const rows = 28;
+let cols = 20;
+let rows = 28;
 let baseCellSize = 30;
 let zoomScale = 1;
 const MIN_ZOOM = 0.8;
@@ -557,10 +557,10 @@ const pathHintBtn = document.getElementById('path-hint-btn');
 
 const DIFFICULTIES = [
     { name: 'EASY', key: 'menu_easy', cssClass: 'easy', color: '#22c55e', tier: 1, minPieces: 35, maxPieces: 50, minPath: 3, maxPath: 6 },
-    { name: 'HARD', key: 'menu_hard', cssClass: 'hard', color: '#f59e0b', tier: 2, minPieces: 100, maxPieces: 150, minPath: 4, maxPath: 8 },
-    { name: 'SUPER HARD', key: 'menu_super_hard', cssClass: 'super', color: '#f97316', tier: 3, minPieces: 150, maxPieces: 220, minPath: 5, maxPath: 10 },
-    { name: 'EXTRA HARD', key: 'menu_extra_hard', cssClass: 'extra', color: '#ef4444', tier: 4, minPieces: 220, maxPieces: 300, minPath: 6, maxPath: 12 },
-    { name: 'NIGHTMARE', key: 'menu_nightmare', cssClass: 'nightmare', color: '#b91c1c', tier: 5, minPieces: 300, maxPieces: 450, minPath: 8, maxPath: 16 }
+    { name: 'HARD', key: 'menu_hard', cssClass: 'hard', color: '#f59e0b', tier: 2, minPieces: 120, maxPieces: 180, minPath: 4, maxPath: 8 },
+    { name: 'SUPER HARD', key: 'menu_super_hard', cssClass: 'super', color: '#f97316', tier: 3, minPieces: 200, maxPieces: 300, minPath: 5, maxPath: 10 },
+    { name: 'EXTRA HARD', key: 'menu_extra_hard', cssClass: 'extra', color: '#ef4444', tier: 4, minPieces: 350, maxPieces: 500, minPath: 6, maxPath: 12 },
+    { name: 'NIGHTMARE', key: 'menu_nightmare', cssClass: 'nightmare', color: '#b91c1c', tier: 5, minPieces: 500, maxPieces: 750, minPath: 8, maxPath: 16 }
 ];
 
 let nextPlayDifficulty = null;
@@ -1008,17 +1008,7 @@ function initProfileMenu() {
     if (profileMenuBtn) {
         profileMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (e.target.closest('#user-display-name')) {
-                openNameEditModal();
-                return;
-            }
             toggleProfileMenu();
-        });
-    }
-    if (userDisplayName) {
-        userDisplayName.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openNameEditModal();
         });
     }
     if (changeNameBtn) {
@@ -2051,6 +2041,14 @@ function startGameWithLevel(difficulty, visualLvl) {
     pathHintsVisible = false;
     updatePathHintButton();
     window.currentDifficulty = difficulty;
+    
+    if (difficulty.tier === 1) { cols = 20; rows = 28; }
+    else if (difficulty.tier === 2) { cols = 24; rows = 34; }
+    else if (difficulty.tier === 3) { cols = 28; rows = 40; }
+    else if (difficulty.tier === 4) { cols = 34; rows = 48; }
+    else if (difficulty.tier === 5) { cols = 40; rows = 56; }
+    else { cols = 20; rows = 28; }
+
     pieces = generateLevel(difficulty);
     initialPiecesStr = JSON.stringify(pieces);
     animatingPieces = [];
@@ -2708,16 +2706,19 @@ if (canvas) {
         const totalW = cols * cellSize;
         const totalH = rows * cellSize;
 
+        const padX = w * 0.15;
+        const padY = h * 0.25;
+
         if (totalW <= w) {
             x = (w - totalW) / 2;
         } else {
-            x = clampPan(x, w - totalW, 0);
+            x = clampPan(x, w - totalW - padX, padX);
         }
 
         if (totalH <= h) {
             y = (h - totalH) / 2;
         } else {
-            y = clampPan(y, h - totalH, 0);
+            y = clampPan(y, h - totalH - padY, padY);
         }
 
         return { x, y };
@@ -2911,8 +2912,8 @@ if (canvas) {
 
             if (!wasPanning && startPoint) {
                 const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                const x = startPoint.x - rect.left;
+                const y = startPoint.y - rect.top;
                 const clickedPiece = findPieceAtPixel(x, y);
 
                 if (clickedPiece) {
