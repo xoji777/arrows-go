@@ -2676,8 +2676,9 @@ function animateEscape(piece, onComplete) {
         
         // Add bonus coin for high combos
         if (currentCombo > 3) {
-            gameCoins++;
-            updateGameCoinDisplay();
+            userData.coins++;
+            saveData();
+            if (typeof updateShopUI === 'function') updateShopUI();
         }
     }
     
