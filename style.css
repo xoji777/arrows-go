@@ -26,9 +26,7 @@ body {
     flex-direction: column;
     transition: opacity 0.3s ease;
     z-index: 1;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(15, 16, 24, 0.98);
 }
 
 #game-screen {
@@ -42,9 +40,7 @@ body {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -webkit-text-size-adjust: 100%;
-    background: rgba(20, 20, 30, 0.85);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
+    background: transparent;
 }
 
 .hidden {
@@ -70,9 +66,7 @@ body {
 }
 
 .modal-box {
-    background: rgba(43, 45, 61, 0.92);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    background: rgba(43, 45, 61, 0.95);
     padding: 30px;
     border-radius: 20px;
     text-align: center;
@@ -882,12 +876,10 @@ body.light-mode .path-hint-glyph {
 }
 
 #game-screen {
-    background: rgba(28, 29, 39, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(28, 29, 39, 0.95);
 }
 body.light-mode #game-screen {
-    background: rgba(244, 246, 250, 0.6);
+    background: rgba(244, 246, 250, 0.95);
 }
 
 /* FAB Buttons (Floating Action Buttons) */
