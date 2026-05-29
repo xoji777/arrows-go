@@ -2406,7 +2406,7 @@ function findPieceAtPixel(x, y) {
             const projX = p1.x + t * (p2.x - p1.x);
             const projY = p1.y + t * (p2.y - p1.y);
             const dist = Math.hypot(x - projX, y - projY);
-            if (dist < cellSize * 0.6 && dist < minDist) {
+            if (dist < Math.max(cellSize * 0.8, 20) && dist < minDist) {
                 minDist = dist;
                 found = p;
             }
